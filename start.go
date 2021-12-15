@@ -96,11 +96,24 @@ func newServer(id, alias, user, ip, privateKey, port string) Server {
 	return Server{id, alias, user, ip, privateKey, port}
 }
 
+func createServerFileAndGetServers() (servers []Server) {
+	server := newServer("sample", "sample", "sample", "sample", "sample", "sample")
+	addServer(server, []Server{})
+	fileBytes, er := ioutil.ReadFile("servers.json")
+	panicIfError(er)
+
+	err := json.Unmarshal(fileBytes, &servers)
+	panicIfError(err)
+	return servers
+}
+
 func getServers() (servers []Server) {
 
 	fileBytes, err := ioutil.ReadFile("servers.json")
 
-	panicIfError(err)
+	if err != nil {
+		return createServerFileAndGetServers()
+	}
 
 	err = json.Unmarshal(fileBytes, &servers)
 	panicIfError(err)
