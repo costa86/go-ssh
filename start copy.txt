@@ -1,0 +1,98 @@
+// package main
+
+// import (
+// 	"encoding/json"
+// 	"fmt"
+// 	"io/ioutil"
+// )
+
+// var print = fmt.Println
+
+// type video struct {
+// 	Id          string
+// 	Title       string
+// 	Description string
+// 	Imageurl    string
+// 	Url         string
+// }
+
+// func newVideo(id, title, description, imageUrl, Url string) video {
+// 	return video{id, title, description, imageUrl, Url}
+
+// }
+
+// func getVideos() (videos []video) {
+
+// 	fileBytes, err := ioutil.ReadFile("videos.json")
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	err = json.Unmarshal(fileBytes, &videos)
+
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	return videos
+// }
+
+// func saveVideos(videos []video) {
+
+// 	videoBytes, err := json.Marshal(videos)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// 	err = ioutil.WriteFile("videos.json", videoBytes, 0644)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+
+// }
+
+// func addVideo(video video, videos []video) {
+// 	videos = append(videos, video)
+// 	saveVideos(videos)
+// }
+
+// func removeVideo(video video, newVideos []video) {
+
+// 	videos := getVideos()
+
+// 	for _, i := range videos {
+// 		if i.Title == video.Title {
+// 			continue
+// 		}
+// 		newVideos = append(newVideos, i)
+// 	}
+// 	saveVideos(newVideos)
+
+// }
+
+// func editVideo(video video, newVideos []video) {
+
+// 	videos := getVideos()
+
+// 	for _, i := range videos {
+// 		if i.Title == video.Title {
+// 			i = video
+// 		}
+// 		newVideos = append(newVideos, i)
+// 	}
+// 	saveVideos(newVideos)
+
+// }
+
+// func main() {
+
+// 	videos := getVideos()
+// 	for _, i := range videos {
+// 		print(i.Title)
+// 	}
+// 	// v := newVideo("1", "LOU", "lou asc", "http", "local")
+// 	// addVideo(v,videos)
+// 	// editVideo(v,[]video{})
+// 	// removeVideo(v, []video{})
+// }
