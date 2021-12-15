@@ -3,14 +3,15 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/atotto/clipboard"
-	"github.com/fatih/color"
-	"github.com/rodaine/table"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/atotto/clipboard"
+	"github.com/fatih/color"
+	"github.com/rodaine/table"
 )
 
 var print = fmt.Println
@@ -26,15 +27,18 @@ type Server struct {
 }
 
 func startCreateServer() {
-	id := getUserInput("sample", "id")
-	alias := getUserInput("sample", "alias")
-	user := getUserInput("sample", "user")
-	ip := getUserInput("sample", "ip")
-	key := getUserInput("sample", "key")
-	port := getUserInput("sample", "port")
+	print("Enter the values for a new server\nDo not add spaces in any field!")
+	id := getUserInput("sample", "ID")
+	alias := getUserInput("sample", "Alias")
+	user := getUserInput("sample", "User")
+	ip := getUserInput("sample", "IP")
+	key := getUserInput("sample", "SSH key")
+	port := getUserInput("sample", "Port")
 	server := newServer(id, alias, user, ip, key, port)
 
 	addServer(server, getServers())
+	print("server " + server.Alias + " has been CREATED")
+
 }
 
 func getServerById(id string) Server {
@@ -47,23 +51,35 @@ func getServerById(id string) Server {
 }
 
 func startDeleteServer() {
+	print("Identify the server you want to DELETE")
 	listServers()
-	id := getUserInput("sample", "id")
+	id := getUserInput("sample", "ID")
 	server := getServerById(id)
+	if server.Id == "" {
+		print("Server id " + id + " was not found")
+		return
+	}
 	removeServer(server, []Server{})
-	print("server " + server.Alias + " has been deleted")
+	print("server " + server.Alias + " has been DELETED")
 }
 
 func startEditServer() {
+	print("Identify the server you want to EDIT\nJust hit 'enter' for the values you do not want to change")
 	listServers()
-	id := getUserInput("sample", "id")
+	id := getUserInput("sample", "ID")
 	server := getServerById(id)
 
-	alias := getUserInput(server.Alias, "alias")
-	user := getUserInput(server.User, "user")
-	ip := getUserInput(server.Ip, "ip")
-	key := getUserInput(server.PrivateKey, "key")
-	port := getUserInput(server.Port, "port")
+	if server.Id == "" {
+		print("Server id " + id + " was not found")
+		return
+	}
+	print("Enter the new values for " + server.Alias + "\nDo not add spaces in any field!")
+
+	alias := getUserInput(server.Alias, "Alias")
+	user := getUserInput(server.User, "User")
+	ip := getUserInput(server.Ip, "IP")
+	key := getUserInput(server.PrivateKey, "SSH key")
+	port := getUserInput(server.Port, "Port")
 
 	server.Alias = alias
 	server.User = user
@@ -72,7 +88,7 @@ func startEditServer() {
 	server.Port = port
 
 	editServer(server, []Server{})
-	print("server " + server.Alias + " has been edited")
+	print("server " + server.Alias + " has been EDITED")
 
 }
 
@@ -92,7 +108,7 @@ func getServers() (servers []Server) {
 	return servers
 }
 
-func saveServers(servers []Server) {
+func saveServersToFile(servers []Server) {
 
 	videoBytes, err := json.Marshal(servers)
 	panicIfError(err)
@@ -104,34 +120,30 @@ func saveServers(servers []Server) {
 
 func addServer(server Server, servers []Server) {
 	servers = append(servers, server)
-	saveServers(servers)
+	saveServersToFile(servers)
 }
 
 func removeServer(server Server, newServers []Server) {
 
-	currentServers := getServers()
-
-	for _, i := range currentServers {
+	for _, i := range getServers() {
 		if i.Alias == server.Alias {
 			continue
 		}
 		newServers = append(newServers, i)
 	}
-	saveServers(newServers)
+	saveServersToFile(newServers)
 
 }
 
 func editServer(server Server, newServers []Server) {
 
-	currentServers := getServers()
-
-	for _, i := range currentServers {
-		if i.Alias == server.Alias {
+	for _, i := range getServers() {
+		if i.Id == server.Id {
 			i = server
 		}
 		newServers = append(newServers, i)
 	}
-	saveServers(newServers)
+	saveServersToFile(newServers)
 
 }
 
@@ -157,7 +169,8 @@ func getCommand(service string, server Server) string {
 	return service + " -i " + server.PrivateKey + " " + server.User + "@" + server.Ip
 }
 
-func getServer(id, service string) bool {
+func sendCommandToClipboard(id, service string) bool {
+
 	if service != "ssh" && service != "sftp" {
 		print("Invalid command: " + service)
 		return false
@@ -178,14 +191,15 @@ func getServer(id, service string) bool {
 
 func createKey(filePath, fileName string) {
 	encryptionAlgorithm := "ed25519"
-	cmdTwo := exec.Command("ssh-keygen", "-a", "100", "-t", encryptionAlgorithm, "-f", filePath, "-C", fileName)
-	cmdThree := exec.Command("ssh-add", filePath)
 
-	_, errTwo := cmdTwo.Output()
-	_, errThree := cmdThree.Output()
+	cmdSSHKeyGen := exec.Command("ssh-keygen", "-a", "100", "-t", encryptionAlgorithm, "-f", filePath, "-C", fileName)
+	cmdSSHAdd := exec.Command("ssh-add", filePath)
 
-	panicIfError(errTwo)
-	panicIfError(errThree)
+	_, errSSHKeyGen := cmdSSHKeyGen.Output()
+	_, errSSHAdd := cmdSSHAdd.Output()
+
+	panicIfError(errSSHKeyGen)
+	panicIfError(errSSHAdd)
 
 	print("New SSH key created:\nPath: " + filePath + "\nEncryption algorithm: " + encryptionAlgorithm)
 
@@ -207,21 +221,22 @@ func getCurrentDirPlusFile(fileName string) string {
 func startSSH() {
 	listServers()
 	serverID := getUserInput("", "Server ID for SSH connection")
-	getServer(serverID, "ssh")
+	sendCommandToClipboard(serverID, "ssh")
 }
 
 func startSFTP() {
 	listServers()
 	serverID := getUserInput("", "Server ID for SFTP connection")
-	getServer(serverID, "sftp")
+	sendCommandToClipboard(serverID, "sftp")
 }
 
 func startCreateSSHKey() {
 	name := getUserInput("sample", "SSH key name")
-	createKey(getCurrentDirPlusFile(name), name)
+	path := getCurrentDirPlusFile(name)
+	createKey(path, name)
 }
 
-func stringInSlice(value string, list []string) bool {
+func textInList(value string, list []string) bool {
 	for _, v := range list {
 		if value == v {
 			return true
@@ -240,50 +255,38 @@ func listServices() {
 	tbl.AddRow("0", "SSH", "New", "Starts a new SSH connection. Access a remote server (default option)")
 	tbl.AddRow("1", "SFTP", "New", "Starts a new SFTP connection. Transfer files back and forth between your computer and the remote server")
 	tbl.AddRow("2", "SSH KEY", "Create", "Creates a SSH key (public and private). Start SSH/SFTP connections without passwords")
-	tbl.AddRow("3", "Server","Add", "Adds a new server to your servers list")
-	tbl.AddRow("4", "Server","Delete", "Deletes a server from your servers list")
-	tbl.AddRow("5", "Server", "Edit","Edits a server from your servers list")
+	tbl.AddRow("3", "Server", "Add", "Adds a new server to your servers list")
+	tbl.AddRow("4", "Server", "Delete", "Deletes a server from your servers list")
+	tbl.AddRow("5", "Server", "Edit", "Edits a server from your servers list")
 
 	tbl.Print()
 	print("----------------")
 }
 
 func startService() {
-	// 	text := `
-	// Select a service:
-	// 0-SSH -> Start connection (default)
-	// 1-SFTP -> Start connection
-	// 2-SSH key -> New
-	// 3-Server -> New
-	// 4-Server -> Detete
-	// 5-Server -> Edit`
 	listServices()
-	service := getUserInput("0", "Service ID")
 
+	selectedServiceID := getUserInput("0", "Service ID")
 	servicesChoices := []string{"0", "1", "2", "3", "4", "5"}
 
-	if !stringInSlice(service, servicesChoices) {
-		print("Invalid service: " + service)
+	if !textInList(selectedServiceID, servicesChoices) {
+		print("Invalid service: " + selectedServiceID)
 		return
 	}
 
-	choices := map[string]interface{}{}
+	service := map[string]interface{}{}
 
-	choices["0"] = startSSH
-	choices["1"] = startSFTP
-	choices["2"] = startCreateSSHKey
-	choices["3"] = startCreateServer
-	choices["4"] = startDeleteServer
-	choices["5"] = startEditServer
+	service["0"] = startSSH
+	service["1"] = startSFTP
+	service["2"] = startCreateSSHKey
+	service["3"] = startCreateServer
+	service["4"] = startDeleteServer
+	service["5"] = startEditServer
 
-	choices[service].(func())()
-
+	service[selectedServiceID].(func())()
 }
 
 func main() {
 	print("---- SSH/SFTP MANAGER ----")
-	// listServers()
-	// listServices()
 	startService()
-
 }
