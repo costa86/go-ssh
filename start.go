@@ -328,6 +328,6 @@ func startService() {
 }
 
 func main() {
-	print("---- SSH/SFTP MANAGER ----")
+	print("---- WELCOME TO SHECRET,A SSH/SFTP MANAGER ----")
 	startService()
 }
