@@ -23,7 +23,21 @@ func panicIfError(err error) {
 }
 
 type Server struct {
-	Id, Alias, User, Ip, PrivateKey, Port string
+	Id, Alias, User, Ip, PrivateKey, Port, Notes string
+}
+
+func validateSSHKeyFile(key string) bool {
+	_, err := os.Stat(key)
+	if err != nil {
+		print("SSH key file not found: " + key)
+		return false
+	}
+	pub := key[len(key)-4:]
+	if pub == ".pub" {
+		print(key + " is the public key. You must use the private part (the one with no extension)")
+		return false
+	}
+	return true
 }
 
 func startCreateServer() {
@@ -33,8 +47,15 @@ func startCreateServer() {
 	user := getUserInput("sample", "User")
 	ip := getUserInput("sample", "IP")
 	key := getUserInput("sample", "SSH key")
+
+	if !validateSSHKeyFile(key) {
+		return
+	}
+
 	port := getUserInput("sample", "Port")
-	server := newServer(id, alias, user, ip, key, port)
+	notes := getUserInput("sample", "Notes")
+
+	server := newServer(id, alias, user, ip, key, port, notes)
 
 	addServer(server, getServers())
 	print("server " + server.Alias + " has been CREATED")
@@ -47,7 +68,7 @@ func getServerById(id string) Server {
 			return i
 		}
 	}
-	return newServer("", "", "", "", "", "")
+	return newServer("", "", "", "", "", "", "")
 }
 
 func startDeleteServer() {
@@ -79,25 +100,32 @@ func startEditServer() {
 	user := getUserInput(server.User, "User")
 	ip := getUserInput(server.Ip, "IP")
 	key := getUserInput(server.PrivateKey, "SSH key")
+
+	if !validateSSHKeyFile(key) {
+		return
+	}
+
 	port := getUserInput(server.Port, "Port")
+	notes := getUserInput(server.Notes, "Notes")
 
 	server.Alias = alias
 	server.User = user
 	server.Ip = ip
 	server.PrivateKey = key
 	server.Port = port
+	server.Notes = notes
 
 	editServer(server, []Server{})
 	print("server " + server.Alias + " has been EDITED")
 
 }
 
-func newServer(id, alias, user, ip, privateKey, port string) Server {
-	return Server{id, alias, user, ip, privateKey, port}
+func newServer(id, alias, user, ip, privateKey, port, notes string) Server {
+	return Server{id, alias, user, ip, privateKey, port, notes}
 }
 
 func createServerFileAndGetServers() (servers []Server) {
-	server := newServer("sample", "sample", "sample", "sample", "sample", "sample")
+	server := newServer("sample", "sample", "sample", "sample", "sample", "sample", "sample")
 	addServer(server, []Server{})
 	fileBytes, er := ioutil.ReadFile("servers.json")
 	panicIfError(er)
@@ -164,11 +192,11 @@ func listServers() {
 	headerFmt := color.New(color.FgGreen, color.Underline).SprintfFunc()
 	columnFmt := color.New(color.FgYellow).SprintfFunc()
 
-	tbl := table.New("ID", "ALIAS", "USER", "IP", "PRIVATE KEY", "PORT")
+	tbl := table.New("ID", "ALIAS", "USER", "IP", "PRIVATE KEY", "PORT", "NOTES")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
 	for _, i := range getServers() {
-		tbl.AddRow(i.Id, i.Alias, i.User, i.Ip, i.PrivateKey, i.Port)
+		tbl.AddRow(i.Id, i.Alias, i.User, i.Ip, i.PrivateKey, i.Port, i.Notes)
 	}
 
 	tbl.Print()
@@ -244,7 +272,7 @@ func startSFTP() {
 }
 
 func startCreateSSHKey() {
-	name := getUserInput("sample", "SSH key name")
+	name := getUserInput("key", "SSH key name")
 	path := getCurrentDirPlusFile(name)
 	createKey(path, name)
 }
