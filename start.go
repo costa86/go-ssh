@@ -9,12 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 
+	"bufio"
+
 	"github.com/atotto/clipboard"
 	"github.com/fatih/color"
 	"github.com/rodaine/table"
 )
 
 var print = fmt.Println
+var serversFile = "servers.json"
+var sample = "sample"
 
 func panicIfError(err error) {
 	if err != nil {
@@ -40,10 +44,10 @@ func validateSSHKeyFile(key string) bool {
 	return true
 }
 
-func startCreateServer() {
-	print("Enter the values for a new server\nDo not add spaces in any field!")
+func startAddServer() {
+	print("Enter the values for a new server")
 	id := getUserInput("sample", "ID")
-	alias := getUserInput("sample", "Alias")
+	alias := getUserInputMultiWord("sample", "Alias")
 	user := getUserInput("sample", "User")
 	ip := getUserInput("sample", "IP")
 	key := getUserInput("sample", "SSH key")
@@ -53,7 +57,7 @@ func startCreateServer() {
 	}
 
 	port := getUserInput("sample", "Port")
-	notes := getUserInput("sample", "Notes")
+	notes := getUserInputMultiWord("sample", "Notes")
 
 	server := newServer(id, alias, user, ip, key, port, notes)
 
@@ -80,7 +84,7 @@ func startDeleteServer() {
 		print("Server id " + id + " was not found")
 		return
 	}
-	removeServer(server, []Server{})
+	removeServer(server)
 	print("server " + server.Alias + " has been DELETED")
 }
 
@@ -96,7 +100,8 @@ func startEditServer() {
 	}
 	print("Enter the new values for " + server.Alias + "\nDo not add spaces in any field!")
 
-	alias := getUserInput(server.Alias, "Alias")
+	alias := getUserInputMultiWord(server.Alias, "Alias")
+
 	user := getUserInput(server.User, "User")
 	ip := getUserInput(server.Ip, "IP")
 	key := getUserInput(server.PrivateKey, "SSH key")
@@ -106,7 +111,7 @@ func startEditServer() {
 	}
 
 	port := getUserInput(server.Port, "Port")
-	notes := getUserInput(server.Notes, "Notes")
+	notes := getUserInputMultiWord(server.Notes, "Notes")
 
 	server.Alias = alias
 	server.User = user
@@ -115,7 +120,7 @@ func startEditServer() {
 	server.Port = port
 	server.Notes = notes
 
-	editServer(server, []Server{})
+	editServer(server)
 	print("server " + server.Alias + " has been EDITED")
 
 }
@@ -125,9 +130,9 @@ func newServer(id, alias, user, ip, privateKey, port, notes string) Server {
 }
 
 func createServerFileAndGetServers() (servers []Server) {
-	server := newServer("sample", "sample", "sample", "sample", "sample", "sample", "sample")
+	server := newServer(sample, sample, sample, sample, sample, sample, sample)
 	addServer(server, []Server{})
-	fileBytes, er := ioutil.ReadFile("servers.json")
+	fileBytes, er := ioutil.ReadFile(serversFile)
 	panicIfError(er)
 
 	err := json.Unmarshal(fileBytes, &servers)
@@ -137,7 +142,7 @@ func createServerFileAndGetServers() (servers []Server) {
 
 func getServers() (servers []Server) {
 
-	fileBytes, err := ioutil.ReadFile("servers.json")
+	fileBytes, err := ioutil.ReadFile(serversFile)
 
 	if err != nil {
 		return createServerFileAndGetServers()
@@ -154,7 +159,7 @@ func saveServersToFile(servers []Server) {
 	videoBytes, err := json.Marshal(servers)
 	panicIfError(err)
 
-	err = ioutil.WriteFile("servers.json", videoBytes, 0644)
+	err = ioutil.WriteFile(serversFile, videoBytes, 0644)
 	panicIfError(err)
 
 }
@@ -164,10 +169,10 @@ func addServer(server Server, servers []Server) {
 	saveServersToFile(servers)
 }
 
-func removeServer(server Server, newServers []Server) {
-
+func removeServer(server Server) {
+	newServers := []Server{}
 	for _, i := range getServers() {
-		if i.Alias == server.Alias {
+		if i.Id == server.Id {
 			continue
 		}
 		newServers = append(newServers, i)
@@ -176,8 +181,8 @@ func removeServer(server Server, newServers []Server) {
 
 }
 
-func editServer(server Server, newServers []Server) {
-
+func editServer(server Server) {
+	newServers := []Server{}
 	for _, i := range getServers() {
 		if i.Id == server.Id {
 			i = server
@@ -253,6 +258,19 @@ func getUserInput(defaultValue, message string) string {
 	return ui
 }
 
+func getUserInputMultiWord(defaultValue, message string) string {
+	print(message + ":")
+	inputReader := bufio.NewReader(os.Stdin)
+	input, _ := inputReader.ReadString('\n')
+	quantidy := len(input)
+	input = input[:quantidy-1]
+
+	if quantidy == 1 {
+		return defaultValue
+	}
+	return input
+}
+
 func getCurrentDirPlusFile(fileName string) string {
 	cwd, err := os.Getwd()
 	panicIfError(err)
@@ -293,12 +311,12 @@ func listServices() {
 	tbl := table.New("ID", "SERVICE", "ACTION", "DESCRIPTION")
 	tbl.WithHeaderFormatter(headerFmt).WithFirstColumnFormatter(columnFmt)
 
-	tbl.AddRow("0", "SSH", "New", "Starts a new SSH connection. Access a remote server (default option)")
-	tbl.AddRow("1", "SFTP", "New", "Starts a new SFTP connection. Transfer files back and forth between your computer and the remote server")
-	tbl.AddRow("2", "SSH KEY", "Create", "Creates a SSH key (public and private). Start SSH/SFTP connections without passwords")
-	tbl.AddRow("3", "Server", "Add", "Adds a new server to your servers list")
-	tbl.AddRow("4", "Server", "Delete", "Deletes a server from your servers list")
-	tbl.AddRow("5", "Server", "Edit", "Edits a server from your servers list")
+	tbl.AddRow("0", "SSH", "Launch 🚀", "Starts a new SSH connection. Access a remote server (default option)")
+	tbl.AddRow("1", "SFTP", "Launch 🚀", "Starts a new SFTP connection. Transfer files back and forth between your computer and the remote server")
+	tbl.AddRow("2", "SSH KEY", "Create 🔑", "Creates a SSH key (public and private). Start SSH/SFTP connections without passwords")
+	tbl.AddRow("3", "Server", "Add ➕", "Adds a new server to your servers list")
+	tbl.AddRow("4", "Server", "Delete ➖", "Deletes a server from your servers list")
+	tbl.AddRow("5", "Server", "Edit 🖍", "Edits a server from your servers list")
 
 	tbl.Print()
 	print("----------------")
@@ -320,7 +338,7 @@ func startService() {
 	service["0"] = startSSH
 	service["1"] = startSFTP
 	service["2"] = startCreateSSHKey
-	service["3"] = startCreateServer
+	service["3"] = startAddServer
 	service["4"] = startDeleteServer
 	service["5"] = startEditServer
 
