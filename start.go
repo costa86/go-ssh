@@ -333,7 +333,7 @@ func startService() {
 		return
 	}
 
-	service := map[string]interface{}{}
+	service := map[string]func(){}
 
 	service["0"] = startSSH
 	service["1"] = startSFTP
@@ -342,7 +342,7 @@ func startService() {
 	service["4"] = startDeleteServer
 	service["5"] = startEditServer
 
-	service[selectedServiceID].(func())()
+	service[selectedServiceID]()
 }
 
 func main() {
